@@ -152,4 +152,96 @@ dimensions don't join to each other, they only join to the fact table, if they d
 ### Lesson 10: Creating a Database and Tables in Spark SQL: Raw Spark
 - Permanent storage VS Temporary storage on the cluster: You have to make sure that 
 you enable container storage on the cluster, so that the data is not lost when the cluster is terminated !
+- Using stuff like count(*) is gonna be optimized by Spark.
 
+
+### Lesson 11 & 12:  SQL
+- CREATE OR REPLACE TABLE: if the table exists, it will replace it, important because in databricks sometimes you can't create if the metadata already exists you have to replace it
+- CASE statement: like if else statement
+- Common Table Expressions (CTE): like a subquery, but you can reference it multiple times
+- WHERE <> 'NA' for when you want everything except
+
+
+### Lesson 13: Joins
+- Inner Join: only the rows that match in both tables
+- Left Join: all the rows in the left table, and the rows that match in the right table
+- Full Outer Join: all the rows in both tables
+- Left Semi Join: all the rows in the left table that match in the right table (only for subsetting)
+- Cross Join: all the rows in the left table with all the rows in the right table (useless)
+- Anti Join: all the rows in the left table that do not match in the right table (only for subsetting)
+
+### Lesson 14: Using set operators
+union, intersect, except
+union all will keep duplicates, union will remove duplicates !
+Table on the fly you can use VALUES
+
+### Lesson 15: SQL
+- Scalar functions: executes for each row, like UPPER, LOWER, LENGTH: can add serious overheard but faster than using any other language
+- Aggregate functions: like SUM, AVG, COUNT, MIN, MAX: executes on a group of rows, BUT grouping can cause a partition shuffle, so it can be slow (GROUP BY 1 means group by the first column)
+- to_json: converts a struct to a JSON string   i.e. named_struct('DateShipped', ShipDate) as json
+- If you want to name a column with a space just use backticks like `column name`
+- Different aggregate functions: COUNT, MIN, MAX, STDDEV, AVG, SUM, VARIANCE, SKEWNESS, KURTOSIS, SLOPE, INTERCEPT, CORR
+- HAVING is like WHERE but for aggregate functions
+
+### Lesson 16: Window functions
+Windows functions operate a set of row and return a single value 
+- Similar to an aggregate but not consolidate the results
+- The window function is able to access more than just the current row of the query result
+- OVER — Identifies the start of a window function block of code. 
+- PARTITION – The data grouping.  The window function works within each partition. In the old days, we called this a control-break.
+- ORDER BY — Sorts the rows by the specified colmumn which is critical for things like running totals.
+
+```sql
+SELECT SalesYear, SalesMonth, TotalSales, Sum(TotalSales) 
+  OVER ( PARTITION BY (SalesYear) ORDER BY SalesMonth ROWS BETWEEN unbounded preceding AND CURRENT ROW ) cumsum
+FROM v_salessummary
+WHERE SalesYear > 2010
+```
+
+![alt text](image-5.png)
+window framing -> rolling average
+
+UNBOUNDED PRECEDING: from the beginning of the partition
+N PRECEDING: N rows before the current row
+CURRENT ROW: the current row
+UNBOUNDED FOLLOWING: to the end of the partition
+N FOLLOWING: N rows after the current row
+
+DEFAULT are ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+
+Window functions: RANK, DENSE_RANK, ROW_NUMBER, NTILE
+```sql
+SELECT
+  Category,
+  Product,
+  SalesAmount,
+  rank
+FROM (
+  SELECT
+    Category,
+    Product,
+    SalesAmount,
+    dense_rank() OVER (PARTITION BY Category ORDER BY SalesAmount DESC) as rank
+  FROM v_productcatalog)
+WHERE
+  rank <= 2
+```
+Explaining the query: dense_rank() is a window function that assigns a rank to each row within a partition of a result set, with no gaps in the ranking values. The rank of a specific row is one plus the number of distinct rank values that are less than the rank value of the row itself. 
+In this case, we are ranking the products by sales amount within each category. The query returns the top two products in each category.
+
+
+- NTILE: divides the result set into a specified number of groups, assigning a bucket number to each row (like quartiles) but you can specify the number of buckets
+
+CASTING: CAST(StandardCost as DECIMAL(10,2))
+
+### Lesson 19: PySpark
+- PySpark is the Python API for Spark
+ ![alt text](image-6.png)
+-  RDD to DataFrame , originally RDD was the only way to interact with Spark, but now we have DataFrames, RDD are black box wether DataFrames are more structured and optimized
+
+### Lesson 20: PySpark with RDD
+- RDD: Resilient Distributed Dataset, the original way to interact with Spark
+- Fault-tolerant, distributed collection of objects
+- Immutable, partitioned, and parallel
+- Lazy evaluation: transformations are not executed until an action is called
+- Actions: collect, count, first, take, reduce, saveAsTextFile
